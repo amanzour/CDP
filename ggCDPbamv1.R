@@ -10,7 +10,7 @@ ggCDPbamv1 <- function(## INPUTS
   absminTPM = 1,
   absminintron = 1,
   absminexon = 1,
-  absminExtensionRatio = 0.01,
+  absminExtensionRatio = 0.05,
   minTxSize = 500,
   minIntronSize = 200,
   minExonSize = 500,
@@ -88,10 +88,10 @@ ggCDPbamv1 <- function(## INPUTS
   suppressWarnings(suppressMessages(library(dplyr)))
   suppressWarnings(suppressMessages(library(ggpubr)))
   suppressWarnings(suppressMessages(library(plotly)))
-  suppressWarnings(suppressMessages(library(idr)))
-  suppressWarnings(suppressMessages(library(htmlwidgets)))
-  suppressWarnings(suppressMessages(library(ggfortify)))
-  suppressWarnings(suppressMessages(library(mclust)))
+  # suppressWarnings(suppressMessages(library(idr)))
+ # suppressWarnings(suppressMessages(library(htmlwidgets)))
+ #  suppressWarnings(suppressMessages(library(ggfortify)))
+  # suppressWarnings(suppressMessages(library(mclust)))
   # suppressWarnings(suppressMessages(library(DESeq2)))
   # Make Master Table
   if(is.null(MasterTable) == TRUE) {
@@ -108,7 +108,7 @@ ggCDPbamv1 <- function(## INPUTS
     gtftable <- rtracklayer::import(gtfpath)
     gtf=as.data.frame(gtftable)
     setDT(gtf)
-    if ("gene_type" %in% colnames(gtf) & dim(gtf[type == "gene",c("gene_id","gene_name")])[1]>0){
+    if ("gene_type" %in% colnames(gtf) & dim(gtf[type == "gene",c("gene_id","gene_name")])[1] > 0) {
     gene_names_types <- gtf[type == "gene",c("gene_id","gene_name","gene_type")]
     } else {
       gene_names_types <- gtf[type == "start_codon",c("gene_id","gene_name")]
@@ -372,67 +372,79 @@ ggCDPbamv1 <- function(## INPUTS
     MasterTableOriginal
     #numericcolnames <- colnames(MasterTableOriginal)[-which(colnames(MasterTableOriginal) %in% c("gene_id","seqnames","start","end","width","strand","tx_len","gene_name","gene_type"))]
     #for(j in (numericcolnames)){data.table::set(MasterTableOriginal, i = which(is.na(MasterTableOriginal[[j]])), j = j, value = 0)}
-    message("removing all pseudogenes and RNA genes from analysis...")
+    message("removing all RNA genes...")
     
     MasterTableOriginal <- MasterTableOriginal[!grepl("^RPL|^RPS|^EEEF1A|^EEF1A|^LENG7",gene_name) & !grepl("RNA$",gene_type) ,]
     if (FilterPseudogenes) {
+      message("If the GTF had a gene_type column, removing all pseudogenes...")
       MasterTableOriginal <- MasterTableOriginal[!grepl("pseudogene$",gene_type), ]
     }
     if (FilterAntisense){
+      message("If the GTF had a gene_type column, removing all antisense genes...")
       MasterTableOriginal <- MasterTableOriginal[!grepl("antisense$",gene_type), ]
     }
     message("OK!")
     
     MasterTable <- MasterTableOriginal
     
-    message("averaging across ",length(myWTpaths)," WT replicates and ",length(myTreatmentpaths)," Treatment replicates...  computing gene TPM/RPKM, downstream extension coverage, exonic, and intronic reads... taking log2 differentials between WT and Treatment expressions... ")
-    
-    # GET EXTENSION TPM READY
-    extensioncolnames <- colnames(MasterTable)[which(grepl("WTExtension|TreatmentExtension",colnames(MasterTable)))]
-    for (k in extensioncolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[gsub("Extension","gene",k)]],na.rm = TRUE))*MasterTable[[k]]/1)}
-    
+     
     # GET GENE TPM READY
     if (!RNAseqLengthNormalize){
+      message("Calculating TPM for gene/exon/intron annotations")
+      # GET EXTENSION TPM READY
+      extensioncolnames <- colnames(MasterTable)[which(grepl("WTExtension|TreatmentExtension",colnames(MasterTable)))]
+      for (k in extensioncolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[gsub("Extension","gene",k)]]/MasterTable[["Extensionwidth"]],na.rm = TRUE))*MasterTable[[k]]/MasterTable[["Extensionwidth"]])}
+      
+      # GET GENE TPM READY
       genecolnames <- colnames(MasterTable)[which(grepl("WTgene|Treatmentgene",colnames(MasterTable)))]
-      for (k in genecolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[k]],na.rm = TRUE))*MasterTable[[k]]/1)}
+      for (k in genecolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[k]]/MasterTable[["width"]],na.rm = TRUE))*MasterTable[[k]]/MasterTable[["width"]])}
       #for(j in (genecolnames)){data.table::set(MasterTable, i = which(is.nan(MasterTable[[j]])), j = j, value = 0)}
       
-      # GET EXON PM READY
+      # GET EXON TPM READY
       exoncolnames <- colnames(MasterTable)[which(grepl("WTexon|Treatmentexon",colnames(MasterTable)))]
-      for (k in exoncolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[k]],na.rm = TRUE))*MasterTable[[k]]/1)}
+      for (k in exoncolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[k]]/MasterTable[["exonwidth"]],na.rm = TRUE))*MasterTable[[k]]/MasterTable[["exonwidth"]])}
       
-      # GET INTRON PM READY
+      # GET INTRON TPM READY
       introncolnames <- colnames(MasterTable)[which(grepl("WTintron|Treatmentintron",colnames(MasterTable)))]
-      for (k in introncolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[k]],na.rm = TRUE))*MasterTable[[k]]/1)}
+      for (k in introncolnames) {data.table::set(x=MasterTable, j=k, value = (10^6/sum(MasterTable[[k]]/MasterTable[["intronwidth"]],na.rm = TRUE))*MasterTable[[k]]/MasterTable[["intronwidth"]])}
+      
     } else {
-      message("normalizing RNA-seq expression by gene/exon/intron lengths")
+      message("Calculating RPKM for gene/exon/intron annotations")
+      # GET EXTENSION RPKM READY
+      extensioncolnames <- colnames(MasterTable)[which(grepl("WTExtension|TreatmentExtension",colnames(MasterTable)))]
+      for (k in extensioncolnames) {data.table::set(x=MasterTable, j=k, value = (10^9/sum(MasterTable[[gsub("Extension","gene",k)]]/1,na.rm = TRUE))*MasterTable[[k]]/MasterTable[["Extensionwidth"]])}
+      
+      # GET GENE RPKM READY
       genecolnames <- colnames(MasterTable)[which(grepl("WTgene|Treatmentgene",colnames(MasterTable)))]
-      for (k in genecolnames) {data.table::set(x=MasterTable, j=k, value = (10^9/sum(MasterTable[[k]]/MasterTable[["width"]],na.rm = TRUE))*MasterTable[[k]]/MasterTable[["width"]])}
+      for (k in genecolnames) {data.table::set(x=MasterTable, j=k, value = (10^9/sum(MasterTable[[k]]/1,na.rm = TRUE))*MasterTable[[k]]/MasterTable[["width"]])}
       #for(j in (genecolnames)){data.table::set(MasterTable, i = which(is.nan(MasterTable[[j]])), j = j, value = 0)}
       
-      # GET EXON PM READY
+      # GET EXON RPKM READY
       exoncolnames <- colnames(MasterTable)[which(grepl("WTexon|Treatmentexon",colnames(MasterTable)))]
-      for (k in exoncolnames) {data.table::set(x=MasterTable, j=k, value = (10^9/sum(MasterTable[[k]]/MasterTable[["exonwidth"]],na.rm = TRUE))*MasterTable[[k]]/MasterTable[["exonwidth"]])}
+      for (k in exoncolnames) {data.table::set(x=MasterTable, j=k, value = (10^9/sum(MasterTable[[k]]/1,na.rm = TRUE))*MasterTable[[k]]/MasterTable[["exonwidth"]])}
       
-      # GET INTRON PM READY
+      # GET INTRON RPKM READY
       introncolnames <- colnames(MasterTable)[which(grepl("WTintron|Treatmentintron",colnames(MasterTable)))]
-      for (k in introncolnames) {data.table::set(x=MasterTable, j=k, value = (10^9/sum(MasterTable[[k]]/MasterTable[["intronwidth"]],na.rm = TRUE))*MasterTable[[k]]/MasterTable[["intronwidth"]])}
+      for (k in introncolnames) {data.table::set(x=MasterTable, j=k, value = (10^9/sum(MasterTable[[k]]/1,na.rm = TRUE))*MasterTable[[k]]/MasterTable[["intronwidth"]])}
+      
     }
     
-    # AVERAGING TPM
+    message("averaging across ",length(myWTpaths)," WT replicates and ",length(myTreatmentpaths)," Treatment replicates...  computing gene, exonic, intronic, and downstream extension expressions... taking log2 differentials between WT and Treatment expressions... ")
+    
+    # AVERAGING EXPRESSIONS
     WTgenecolnames <- colnames(MasterTable)[which(grepl("WTgene",colnames(MasterTable)))]
     MasterTable[, WTTPM := rowMeans(MasterTable[,WTgenecolnames,with=FALSE],na.rm = TRUE)]
     Treatmentgenecolnames <- colnames(MasterTable)[which(grepl("Treatmentgene",colnames(MasterTable)))]
     MasterTable[, TreatmentTPM := rowMeans(MasterTable[,Treatmentgenecolnames,with=FALSE],na.rm = TRUE)]
     
-    #AVERAGING EXTENSION TPM
+    #AVERAGING EXTENSION EXPRESSION
     WTextensioncolnames <- colnames(MasterTable)[which(grepl("WTExtension",colnames(MasterTable)))]
     MasterTable[, WTExtensionTPM := rowMeans(MasterTable[,WTextensioncolnames,with=FALSE],na.rm = TRUE)]
     Treatmentextensioncolnames <- colnames(MasterTable)[which(grepl("TreatmentExtension",colnames(MasterTable)))]
     MasterTable[, TreatmentExtensionTPM := rowMeans(MasterTable[,Treatmentextensioncolnames,with=FALSE],na.rm = TRUE)]
-    # RATIO OF EXTENSION TO GENE TPM
-    MasterTable[, WTExtensionRatio := (MasterTable[["WTExtensionTPM"]]/MasterTable[["Extensionwidth"]])/(MasterTable[["WTTPM"]]/MasterTable[["width"]])]
-    MasterTable[, TreatmentExtensionRatio := (MasterTable[["TreatmentExtensionTPM"]]/MasterTable[["Extensionwidth"]])/(MasterTable[["TreatmentTPM"]]/MasterTable[["width"]])]
+    # AVERAGING RATIO OF EXTENSION TO GENE EXPRESSION
+    MasterTable[, WTExtensionRatio := (MasterTable[["WTExtensionTPM"]]/1)/(MasterTable[["WTTPM"]]/1)]
+    MasterTable[, TreatmentExtensionRatio := (MasterTable[["TreatmentExtensionTPM"]]/1)/(MasterTable[["TreatmentTPM"]]/1)]
     #=========================
     #AVERAGING EXON
     WTexoncolnames <- colnames(MasterTable)[which(grepl("WTexon",colnames(MasterTable)))]
@@ -448,10 +460,10 @@ ggCDPbamv1 <- function(## INPUTS
     MasterTableReplicates <- MasterTable
     MasterTable <- MasterTable[,c("seqnames","start","end","gene_id","gene_name","strand","gene_type","tx_len","width","exonwidth","intronwidth","Extensionwidth","WTTPM","TreatmentTPM","WTexonmean","Treatmentexonmean","WTintronmean","Treatmentintronmean","WTExtensionTPM","TreatmentExtensionTPM","WTExtensionRatio","TreatmentExtensionRatio","PARCLIPgene","PARCLIP5UTR","PARCLIPCDS","PARCLIPintron","PARCLIP3UTR")]
     
-    MasterTable[, log2fC := log2((MasterTable[["TreatmentTPM"]]+absminTPM)/(MasterTable[["WTTPM"]]+absminTPM))]
-    MasterTable[, log2fCexon := log2((MasterTable[["Treatmentexonmean"]]+absminexon)/(MasterTable[["WTexonmean"]]+absminexon))]
-    MasterTable[, log2fCintron := log2((MasterTable[["Treatmentintronmean"]]+absminintron)/(MasterTable[["WTintronmean"]]+absminintron))]
-    MasterTable[, log2fCextension := log2((MasterTable[["TreatmentExtensionRatio"]]+absminExtensionRatio)/(MasterTable[["WTExtensionRatio"]]+absminExtensionRatio))]
+    MasterTable[, log2fC := log2((MasterTable[["TreatmentTPM"]]+1)/(MasterTable[["WTTPM"]]+1))]
+    MasterTable[, log2fCexon := log2((MasterTable[["Treatmentexonmean"]]+1)/(MasterTable[["WTexonmean"]]+1))]
+    MasterTable[, log2fCintron := log2((MasterTable[["Treatmentintronmean"]]+1)/(MasterTable[["WTintronmean"]]+1))]
+    MasterTable[, log2fCextension := log2((MasterTable[["TreatmentExtensionRatio"]]+0.05)/(MasterTable[["WTExtensionRatio"]]+0.05))]
     
     message("DONE! ... with part 1")
     
@@ -497,10 +509,7 @@ ggCDPbamv1 <- function(## INPUTS
                                    (WTExtensionRatio >= minExtensionRatio | TreatmentExtensionRatio >= minExtensionRatio)]
       message(paste0("additionally filtered MasterTable for downstream expression of at least ",absminExtensionRatio," of corresponding gene expression in both samples and at least ",minExtensionRatio," in either sample."))
     }
-    # (WTExtensionRatio > absminExtensionRatio & TreatmentExtensionRatio > absminExtensionRatio) &
-    # & (WTExtensionRatio > minExtensionRatio | TreatmentExtensionRatio > minExtensionRatio)
-    # write.csv(MasterTable,"MasterTable.csv",sep = "\t")
-    
+   
     # RNA SEQ LENGTH NORMALIZATION
     
     # PARCLIP BINNING
@@ -508,10 +517,10 @@ ggCDPbamv1 <- function(## INPUTS
     if (exprNormalization){
       if (!PARCLIPLengthNormalize){
         message(paste0("gene binning of: ",plotByColumn," for target region: ",binColumn,", using log2 [ (10^6*XL/sum(XL) / (Gene Expression in WT) ] gene distribution..."))    
-        MasterTable[, target := log2(10^6*(MasterTable[[binColumn]]/sum(MasterTable[[binColumn]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+0))]
+        MasterTable[, target := log2(10^6*(MasterTable[[binColumn]]/sum(MasterTable[[binColumn]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+1))]
       } else {
         message(paste0("gene binning of: ",plotByColumn," for target region: ",binColumn,", using log2 [ (10^9*XL/sum(XL) / (Length-Normalized Gene Expression  in WT) ] gene distribution..."))    
-        MasterTable[, target := log2(10^9*((MasterTable[[binColumn]]/MasterTable[["width"]])/sum(MasterTable[[binColumn]]/MasterTable[["width"]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+0))]
+        MasterTable[, target := log2(10^9*((MasterTable[[binColumn]]/MasterTable[["width"]])/sum(MasterTable[[binColumn]]/MasterTable[["width"]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+1))]
       }
     } else {
       if (!PARCLIPLengthNormalize){
