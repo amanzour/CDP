@@ -1,4 +1,9 @@
 # CDP
+
+(to test the R shiny web app go to bottom)
+To explore the R shiny seb server for CDP, download the sample Table (myMasterTable.csv) and uploaded it here (https://amanzour.shinyapps.io/mytestshiny/)
+
+Complete Explanation:
 The program intersects RNAseq (WT & KD) and PAR-CLIP data and creates Cummulative Distribution Plots for mRNA differential expression. Genes are categorized to targets and non-targets. The degree to which each gene might be a target depends on abundance of cross-linked reads on its mRNA (PAR-CLIP) in the context of its expression (WT RNA-seq). 
 ![picture](CDP.png)
 
@@ -8,4 +13,6 @@ All you need is three files (ggCDPbamv1.R, processapp.R, and app.R). If you have
 
 Generate Plots:
 Create another shiny app project (myshiny2) and copy ggCDPbamv1.R and app.R files in it. hen press "run app" after opening app.R. You can upload the table that was made from myshiny1.
-Please email me at amir.manzour@gmail.com if you have any questions.
+
+To explore the R shiny web app (myshiny2), download the sample Table (myMasterTable.csv) and uploaded it here (https://amanzour.shinyapps.io/mytestshiny/)
+Email me at amir.manzour@gmail.com if you have any questions.
