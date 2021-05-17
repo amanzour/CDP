@@ -1,6 +1,6 @@
 # CDP
 
-(to test the R shiny web app go to bottom)
+
 To explore the R shiny seb server for CDP, download the sample Table (myMasterTable.csv) and uploaded it here (https://amanzour.shinyapps.io/mytestshiny/)
 
 Complete Explanation:
@@ -14,5 +14,5 @@ All you need is three files (ggCDPbamv1.R, processapp.R, and app.R). If you have
 Generate Plots:
 Create another shiny app project (myshiny2) and copy ggCDPbamv1.R and app.R files in it. hen press "run app" after opening app.R. You can upload the table that was made from myshiny1.
 
-To explore the R shiny web app (myshiny2), download the sample Table (myMasterTable.csv) and uploaded it here (https://amanzour.shinyapps.io/mytestshiny/)
+To explore the R shiny web app (myshiny2), download the sample Table (myMasterTable.csv, which was made using myshiny2) and uploaded it here (https://amanzour.shinyapps.io/mytestshiny/)
 Email me at amir.manzour@gmail.com if you have any questions.
