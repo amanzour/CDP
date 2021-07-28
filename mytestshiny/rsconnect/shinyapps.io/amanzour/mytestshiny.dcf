@@ -1,0 +1,14 @@
+name: mytestshiny
+title: mytestshiny
+username:
+account: amanzour
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4141490
+bundleId: 4605889
+url: https://amanzour.shinyapps.io/mytestshiny/
+when: 1621231252.75226
+lastSyncTime: 1621231252.75228
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|PARCLIP_HNRNPK_P_Cyt_224_226_RPI36.aligned_TtoC_sorted__WT_accepted_hits.bam__Treatment_accepted_hits.bam_MasterTable_CDP (1).png|PARCLIP_HNRNPK_P_Cyt_224_226_RPI36.aligned_TtoC_sorted__WT_accepted_hits.bam__Treatment_accepted_hits.bam_MasterTable_CDP.png

@@ -4,6 +4,7 @@ author: "Amir Manzour"
 date: "6/29/2020"
 output: html_document
 runtime: shiny
+
 ---
 ## PAR-CLIP RNA-seq CDP
 ### upload your *MasterTable.csv file and run the CDP
@@ -34,13 +35,13 @@ options(shiny.maxRequestSize = 30*1024^2)
   suppressWarnings(suppressMessages(library(dplyr)))
   suppressWarnings(suppressMessages(library(ggpubr)))
   suppressWarnings(suppressMessages(library(plotly)))
-  suppressWarnings(suppressMessages(library(idr)))
+#  suppressWarnings(suppressMessages(library(idr)))
   suppressWarnings(suppressMessages(library(htmlwidgets)))
-  suppressWarnings(suppressMessages(library(ggfortify)))
-  suppressWarnings(suppressMessages(library(mclust)))
+#  suppressWarnings(suppressMessages(library(ggfortify)))
+#  suppressWarnings(suppressMessages(library(mclust)))
   suppressWarnings(suppressMessages(library(cowplot)))
   
-source(paste0("ggCDPbamv1.R"))
+source('ggCDPbamv1.R')
 ```
 
 
@@ -61,10 +62,10 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
            h6("Run"),
            submitButton("Submit"),
 
-           radioButtons("radio1", h6("RNAseq differential expression"),
-                        choices = list("gene expression" = "log2fC", "exon expression" = "log2fCexon", "intron expression" = "log2fCintron"), 
-                        selected = "log2fC"),
-    
+                       radioButtons("radio1", h6("RNAseq differential expression"),
+                                     choices = list("gene" = "log2fC", "exon" = "log2fCexon", "intron" = "log2fCintron", "downstream extension" = "log2fCextension"), 
+                                     selected = "log2fC"),
+     
 
            radioButtons("radio2", h6("PAR-CLIP target region"),
                         choices = list("gene" = "PARCLIPgene", "5' UTR" = "PARCLIP5UTR", "coding" = "PARCLIPCDS", "intron" = "PARCLIPintron", "3' UTR" = "PARCLIP3UTR"), 

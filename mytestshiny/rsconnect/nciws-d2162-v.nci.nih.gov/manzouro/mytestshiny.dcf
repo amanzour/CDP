@@ -1,0 +1,13 @@
+name: mytestshiny
+title: mytestshiny
+username: manzouro
+account: manzouro
+server: nciws-d2162-v.nci.nih.gov
+hostUrl: http://nciws-d2162-v.nci.nih.gov:3939/__api__
+appId: 2
+bundleId: 63
+url: http://nciws-d2162-v.nci.nih.gov:3939/content/2/
+when: 1595101809.82271
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|PARCLIP_HNRNPK_P_Cyt_224_226_RPI36.aligned_TtoC_sorted__WT_accepted_hits.bam__Treatment_accepted_hits.bam_MasterTable_CDP (1).png|PARCLIP_HNRNPK_P_Cyt_224_226_RPI36.aligned_TtoC_sorted__WT_accepted_hits.bam__Treatment_accepted_hits.bam_MasterTable_CDP.png|PARCLIP_HNRNPK_P_Cyt_224_226_RPI36.aligned_TtoC_sorted__WT_accepted_hits.bam__Treatment_accepted_hits.bam_MasterTable.csv

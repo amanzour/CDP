@@ -1,0 +1,12 @@
+name: myshiny
+title: myshiny
+username: manzouro
+account: manzouro
+server: nciws-d2162-v.nci.nih.gov
+hostUrl: http://nciws-d2162-v.nci.nih.gov:3939/__api__
+appId: 1
+bundleId: 59
+url: http://nciws-d2162-v.nci.nih.gov:3939/content/1/
+when: 1595093905.30166
+asMultiple: FALSE
+asStatic: FALSE
