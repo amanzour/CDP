@@ -1,0 +1,251 @@
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+# options("repos",c(CRAN = 'http://cran.us.r-project.org'))
+library(shiny)
+options(shiny.maxRequestSize = 30*1024^2)
+# options(shiny.usecairo = TRUE)
+
+suppressWarnings(suppressMessages(library(data.table)))
+suppressWarnings(suppressMessages(library(plyr)))
+suppressWarnings(suppressMessages(library(dplyr)))
+suppressWarnings(suppressMessages(library(reshape2)))
+suppressWarnings(suppressMessages(library(GenomicFeatures)))
+suppressWarnings(suppressMessages(library(GenomicRanges)))
+suppressWarnings(suppressMessages(library(GenomeInfoDb)))
+suppressWarnings(suppressMessages(library(Rsamtools))) 
+suppressWarnings(suppressMessages(library(GenomicAlignments))) 
+suppressWarnings(suppressMessages(library(ggplot2)))
+suppressWarnings(suppressMessages(library(gplots)))
+suppressWarnings(suppressMessages(library(RColorBrewer)))
+suppressWarnings(suppressMessages(library(extrafont)))
+suppressWarnings(suppressMessages(library(grid)))
+suppressWarnings(suppressMessages(library(gridExtra)))
+suppressWarnings(suppressMessages(library(reporttools)))
+suppressWarnings(suppressMessages(library(rtracklayer)))
+# suppressWarnings(suppressMessages(library(MVN)))
+suppressWarnings(suppressMessages(library(ggrepel)))
+suppressWarnings(suppressMessages(library(plyr)))
+suppressWarnings(suppressMessages(library(dplyr)))
+suppressWarnings(suppressMessages(library(ggpubr)))
+suppressWarnings(suppressMessages(library(plotly)))
+# suppressWarnings(suppressMessages(library(idr)))
+ suppressWarnings(suppressMessages(library(htmlwidgets)))
+# suppressWarnings(suppressMessages(library(ggfortify)))
+# suppressWarnings(suppressMessages(library(mclust)))
+ suppressWarnings(suppressMessages(library(cowplot)))
+
+source(paste0("ggCDPbamv1.R"))
+
+# Define UI for application that draws a histogram
+library(shinythemes)
+# library(shinyWidgets)
+
+ui <- fluidPage(theme = shinytheme("cerulean"),
+                titlePanel("HafnerLab"),
+                # setBackgroundColor("#FF8C00"),
+                sidebarLayout(
+                    sidebarPanel(
+                        fileInput("file", NULL, buttonLabel = "Upload...", 
+                                  multiple = FALSE,
+                                  accept = ".csv"),
+                        
+                        
+                        h6("Run"),
+                        submitButton("Submit"),
+                        
+                        radioButtons("radio1", h6("RNAseq differential expression"),
+                                     choices = list("gene" = "log2fC", "exon" = "log2fCexon", "intron" = "log2fCintron", "downstream extension" = "log2fCextension"), 
+                                     selected = "log2fC"),
+                        
+                        
+                        radioButtons("radio2", h6("PAR-CLIP target region"),
+                                     choices = list("gene" = "PARCLIPgene", "5' UTR" = "PARCLIP5UTR", "coding" = "PARCLIPCDS", "intron" = "PARCLIPintron", "3' UTR" = "PARCLIP3UTR"), 
+                                     selected = "PARCLIPgene"),
+                        
+                        
+                        h6("PAR-CLIP Calibration"),
+                        checkboxInput("PARCLIPRNAseq", "divide by RNAseq", value = TRUE),
+                        
+                        
+                        h6("PARCLIP Length Normalization"),
+                        checkboxInput("PARCLIPL", "divide by Gene Length", value = TRUE),
+                        
+                        
+                        
+                        numericInput("numg1", 
+                                     h6("minimum gene expression in both"), 
+                                     value = 1),   
+                        
+                        numericInput("numg2", 
+                                     h6("minimum gene expression in either"), 
+                                     value = 5), 
+                        
+                        numericInput("numg3", 
+                                     h6("minimum transcript length"), 
+                                     value = 500),
+                        
+                        
+                        numericInput("nume1", 
+                                     h6("minimum exon expression in both"), 
+                                     value = 1),
+                        
+                        numericInput("nume2", 
+                                     h6("minimum exon expression in either"), 
+                                     value = 5),
+                        
+                        numericInput("nume3", 
+                                     h6("minimum exon length"), 
+                                     value = 200),
+                        
+                        numericInput("numi1", 
+                                     h6("minimum intron expression in both"), 
+                                     value = 1),
+                        
+                        numericInput("numi2", 
+                                     h6("minimum intron expression in either"), 
+                                     value = 5),
+                        
+                        numericInput("numi3", 
+                                     h6("minimum intron length"), 
+                                     value = 200),
+                        
+                        numericInput("numex1", 
+                                     h6("minimum 3utr-extended relative expression in both"), 
+                                     value = 0.05),
+                        numericInput("numex2", 
+                                     h6("minimum 3utr-extended relative expression in either"), 
+                                     value = 0.1),
+
+                        h6("include non-targets"),
+                        checkboxInput("includeBin0", "Bin0", value = TRUE),
+                        
+                        numericInput("gg1", 
+                                     h6("lineSize"), 
+                                     value = 0.5),
+                        
+                        numericInput("gg2", 
+                                     h6("panelBorderSize"), 
+                                     value = 1),
+                        
+                        numericInput("gg3", 
+                                     h6("legendSpacing"), 
+                                     value = 0.4),
+                        
+                        numericInput("gg4", 
+                                     h6("text size"), 
+                                     value = 5)
+                    ),
+                    
+                    mainPanel(
+                        textOutput("text1"),
+                        plotOutput("plot1"),
+                        downloadButton("download")
+                    )
+                )   
+)
+
+# Define server logic ----
+server <- function(input, output) {
+    
+    output$text1 <- renderText({
+        paste("MasterTable:", input$file$name)
+    })
+    
+    output$plot1 <- renderPlot({
+        data <- reactive({
+            req(input$file)
+            
+            ext <- tools::file_ext(input$file$name)
+            switch(ext,
+                   csv = vroom::vroom(input$file$datapath, delim = "\t"),
+                   validate("Invalid file; Please upload a tab-delimited .csv  file")
+            )
+        })
+        data()
+        
+        inFile <- input$file
+        if (is.null(inFile))
+            return("NA")
+        MT <- read.csv(inFile$datapath, sep="\t", header = TRUE)
+        setDT(MT)
+        ggCDPbamv1(MasterTable = MT, plotByColumn=input$radio1, binColumn=input$radio2,
+                   minTPM = input$numg2, maxTPM = Inf, 
+                   absminTPM =  input$numg1, minTxSize = input$numg3,        
+                   minintron = input$numi2, absminintron =  input$numi1, minIntronSize = input$numi3, 
+                   minexon = input$nume2, absminexon =  input$nume1, minExonSize = input$nume3,
+                   minExtensionRatio = input$numex2, absminExtensionRatio = input$numex1,    
+                   exprNormalization = input$PARCLIPRNAseq, # TRUE: calibrate binning by WT expression. False: Just use log2 of normalized XL
+                   PARCLIPLengthNormalize = input$PARCLIPL,
+                   includeBin0 = input$includeBin0, # TRUE: include bin0. FALSE: exclude bin0 and p-values.
+                   lineSize = input$gg1,
+                   panelBorderSize = input$gg2,
+                   legendSpacing = input$gg3,
+                   xlab = "Log2 Fold Change [Treatment/WT]",
+                   ylab = "Cumulative Distribution",
+                   axisTitleSize = input$gg4,
+                   axisTextSize = input$gg4,
+                   ggTitleSize = input$gg4,
+                   legendTextSize = input$gg4
+        )
+    })
+    
+    plotInput <- reactive({
+        inFile <- input$file
+        if (is.null(inFile))
+            return("NA")
+        MT <- read.csv(inFile$datapath, sep="\t", header = TRUE)
+        setDT(MT)
+        plotInput <- ggCDPbamv1(MasterTable = MT, plotByColumn=input$radio1, binColumn=input$radio2,
+                                minTPM = input$numg2, maxTPM = Inf, 
+                                absminTPM =  input$numg1, minTxSize = input$numg3,        
+                                minintron = input$numi2, absminintron =  input$numi1, minIntronSize = input$numi3, 
+                                minexon = input$nume2, absminexon =  input$nume1, minExonSize = input$nume3,
+                                minExtensionRatio = input$numex2, absminExtensionRatio = input$numex1,    
+                                exprNormalization = input$PARCLIPRNAseq, # TRUE: calibrate binning by WT expression. False: Just use log2 of normalized XL
+                                PARCLIPLengthNormalize = input$PARCLIPL,
+                                includeBin0 = input$includeBin0, # TRUE: include bin0. FALSE: exclude bin0 and p-values.
+                                lineSize = input$gg1,
+                                panelBorderSize = input$gg2,
+                                legendSpacing = input$gg3,
+                                xlab = "Log2 Fold Change [Treatment/WT]",
+                                ylab = "Cumulative Distribution",
+                                axisTitleSize = input$gg4,
+                                axisTextSize = input$gg4,
+                                ggTitleSize = input$gg4,
+                                legendTextSize = input$gg4
+        )
+    })
+    
+    
+     #output$download <- downloadHandler(
+    #  filename = function() { paste0(sub(pattern = "(.*)\\..*$", replacement = "\\1",
+    #                          input$file$name), '_CDP.png') },
+    #  content = function(file) {
+    #    png(file, width = 15, height = 5, res = 300, units = "in")
+    #    print(plotInput())
+    #    dev.off()
+    #  })
+    
+    output$download <- downloadHandler(
+        filename = function() { paste0(sub(pattern = "(.*)\\..*$", replacement = "\\1",
+                                           input$file$name), '_CDP.png') },
+        content = function(file) {
+            device <- function(..., width = 15, height = 5) {
+                grDevices::png(..., width = width, height = height,
+                               res = 300, units = "in")
+            }
+            save_plot(file, plot = plotInput(), device = device)
+        })
+    
+}
+
+# Run the app ----
+shinyApp(ui = ui, server = server)
+
+

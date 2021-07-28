@@ -10,7 +10,7 @@ ggCDPbamv1 <- function(## INPUTS
   absminTPM = 1,
   absminintron = 1,
   absminexon = 1,
-  absminExtensionRatio = 0.01,
+  absminExtensionRatio = 0.05,
   minTxSize = 500,
   minIntronSize = 200,
   minExonSize = 500,
@@ -108,7 +108,7 @@ ggCDPbamv1 <- function(## INPUTS
     gtftable <- rtracklayer::import(gtfpath)
     gtf=as.data.frame(gtftable)
     setDT(gtf)
-    if ("gene_type" %in% colnames(gtf) & dim(gtf[type == "gene",c("gene_id","gene_name")])[1]>0){
+    if ("gene_type" %in% colnames(gtf) & dim(gtf[type == "gene",c("gene_id","gene_name")])[1] > 0) {
     gene_names_types <- gtf[type == "gene",c("gene_id","gene_name","gene_type")]
     } else {
       gene_names_types <- gtf[type == "start_codon",c("gene_id","gene_name")]
@@ -460,10 +460,10 @@ ggCDPbamv1 <- function(## INPUTS
     MasterTableReplicates <- MasterTable
     MasterTable <- MasterTable[,c("seqnames","start","end","gene_id","gene_name","strand","gene_type","tx_len","width","exonwidth","intronwidth","Extensionwidth","WTTPM","TreatmentTPM","WTexonmean","Treatmentexonmean","WTintronmean","Treatmentintronmean","WTExtensionTPM","TreatmentExtensionTPM","WTExtensionRatio","TreatmentExtensionRatio","PARCLIPgene","PARCLIP5UTR","PARCLIPCDS","PARCLIPintron","PARCLIP3UTR")]
     
-    MasterTable[, log2fC := log2((MasterTable[["TreatmentTPM"]]+absminTPM)/(MasterTable[["WTTPM"]]+absminTPM))]
-    MasterTable[, log2fCexon := log2((MasterTable[["Treatmentexonmean"]]+absminexon)/(MasterTable[["WTexonmean"]]+absminexon))]
-    MasterTable[, log2fCintron := log2((MasterTable[["Treatmentintronmean"]]+absminintron)/(MasterTable[["WTintronmean"]]+absminintron))]
-    MasterTable[, log2fCextension := log2((MasterTable[["TreatmentExtensionRatio"]]+absminExtensionRatio)/(MasterTable[["WTExtensionRatio"]]+absminExtensionRatio))]
+    MasterTable[, log2fC := log2((MasterTable[["TreatmentTPM"]]+1)/(MasterTable[["WTTPM"]]+1))]
+    MasterTable[, log2fCexon := log2((MasterTable[["Treatmentexonmean"]]+1)/(MasterTable[["WTexonmean"]]+1))]
+    MasterTable[, log2fCintron := log2((MasterTable[["Treatmentintronmean"]]+1)/(MasterTable[["WTintronmean"]]+1))]
+    MasterTable[, log2fCextension := log2((MasterTable[["TreatmentExtensionRatio"]]+0.05)/(MasterTable[["WTExtensionRatio"]]+0.05))]
     
     message("DONE! ... with part 1")
     
@@ -517,10 +517,10 @@ ggCDPbamv1 <- function(## INPUTS
     if (exprNormalization){
       if (!PARCLIPLengthNormalize){
         message(paste0("gene binning of: ",plotByColumn," for target region: ",binColumn,", using log2 [ (10^6*XL/sum(XL) / (Gene Expression in WT) ] gene distribution..."))    
-        MasterTable[, target := log2(10^6*(MasterTable[[binColumn]]/sum(MasterTable[[binColumn]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+0))]
+        MasterTable[, target := log2(10^6*(MasterTable[[binColumn]]/sum(MasterTable[[binColumn]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+1))]
       } else {
         message(paste0("gene binning of: ",plotByColumn," for target region: ",binColumn,", using log2 [ (10^9*XL/sum(XL) / (Length-Normalized Gene Expression  in WT) ] gene distribution..."))    
-        MasterTable[, target := log2(10^9*((MasterTable[[binColumn]]/MasterTable[["width"]])/sum(MasterTable[[binColumn]]/MasterTable[["width"]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+0))]
+        MasterTable[, target := log2(10^9*((MasterTable[[binColumn]]/MasterTable[["width"]])/sum(MasterTable[[binColumn]]/MasterTable[["width"]],na.rm = TRUE))/(MasterTable[["WTTPM"]]+1))]
       }
     } else {
       if (!PARCLIPLengthNormalize){
