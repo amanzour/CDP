@@ -1,7 +1,7 @@
 # CDP
 
 
-To explore the R shiny seb server for CDP, download the sample Table (myMasterTable.csv) and uploaded it here (https://amanzour.shinyapps.io/mytestshiny/)
+To explore the R shiny web server for CDP, download the sample Table (myMasterTable.csv) and uploaded it here (https://amanzour.shinyapps.io/mytestshiny/)
 
 Complete Explanation:
 The program intersects RNAseq (WT & KD) and PAR-CLIP data and creates Cummulative Distribution Plots for mRNA differential expression. Genes are categorized to targets and non-targets. The degree to which each gene might be a target depends on abundance of cross-linked reads on its mRNA (PAR-CLIP) in the context of its expression (WT RNA-seq). 
